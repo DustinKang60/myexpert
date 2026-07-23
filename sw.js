@@ -1,6 +1,6 @@
 // My Expert — service worker
 // 에셋을 고치면 CACHE 버전을 반드시 올린다. 안 올리면 기기가 옛 코드를 계속 쓴다.
-var CACHE = 'myexpert-v4';
+var CACHE = 'myexpert-v5';
 var ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
