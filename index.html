@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>My Expert — 전문가 친구들</title>
+<meta name="description" content="분야별 전문가 페르소나와 대화하고, 지난 대화를 기억하는 AI 친구. 기록은 내 기기에만 저장됩니다.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B1220">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0B1220; --panel:#131C2E; --panel2:#1B2740; --line:#25324D;
+    --text:#E9EEF8; --sub:#8FA0BF; --accent:#F7D774; --bubble-me:#F7D774; --bubble-me-t:#241E05;
+    --radius:14px;
+  }
+  body.light{
+    --bg:#F5F7FB; --panel:#FFFFFF; --panel2:#EEF2F8; --line:#DDE4EF;
+    --text:#151C28; --sub:#66748C; --accent:#C79A16; --bubble-me:#FCE79A; --bubble-me-t:#2A2205;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);
+    font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    display:flex;flex-direction:column;overflow:hidden}
+  .screen{display:none;flex:1;flex-direction:column;min-height:0}
+  .screen.on{display:flex}
+  header{display:flex;align-items:center;gap:8px;padding:14px 16px 8px;flex:none}
+  header h1{margin:0;font-size:1.35rem;font-weight:800;flex:1}
+  .icon-btn{background:none;border:none;color:var(--text);font-size:1.15rem;padding:6px 8px;cursor:pointer;border-radius:8px}
+  .icon-btn:active{background:var(--panel2)}
+  .list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .me{display:flex;align-items:center;gap:12px;padding:10px 16px 16px;border-bottom:1px solid var(--line)}
+  .sec{font-size:.78rem;color:var(--sub);padding:12px 16px 6px;font-weight:600}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer}
+  .row:active{background:var(--panel2)}
+  .av{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    font-weight:800;font-size:1.05rem;color:#fff;flex:none;position:relative}
+  .av svg{width:60%;height:60%;display:block}
+  .av .dot{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;
+    background:#48D177;border:2px solid var(--bg)}
+  .row-b{flex:1;min-width:0}
+  .row-t{display:flex;align-items:center;gap:6px}
+  .row-t b{font-size:.98rem;font-weight:700}
+  .tag{font-size:.66rem;padding:2px 7px;border-radius:999px;color:#fff;font-weight:700;flex:none}
+  .row-s{font-size:.82rem;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .note{font-size:.7rem;color:var(--sub);text-align:center;line-height:1.6;padding:22px 26px 30px}
+  nav{display:flex;flex:none;border-top:1px solid var(--line);background:var(--panel);
+    padding-bottom:env(safe-area-inset-bottom,0)}
+  nav button{flex:1;background:none;border:none;color:var(--sub);padding:9px 0 7px;
+    font-size:.7rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+  nav button .ic{font-size:1.25rem;line-height:1}
+  nav button.on{color:var(--text);font-weight:700}
+
+  /* 채팅 */
+  .chat-head{display:flex;align-items:center;gap:10px;padding:10px 12px;flex:none;
+    border-bottom:1px solid var(--line);background:var(--panel)}
+  .chat-head .av{width:36px;height:36px;border-radius:11px;font-size:.85rem}
+  .msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px}
+  .b{max-width:78%;padding:9px 12px;border-radius:14px;font-size:.93rem;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .b.them{background:var(--panel2);align-self:flex-start;border-top-left-radius:5px}
+  .b.me{background:var(--bubble-me);color:var(--bubble-me-t);align-self:flex-end;border-top-right-radius:5px}
+  .b.sys{align-self:center;background:none;color:var(--sub);font-size:.78rem;text-align:center;max-width:90%}
+  .typing{align-self:flex-start;display:flex;gap:4px;padding:11px 14px;background:var(--panel2);border-radius:14px;border-top-left-radius:5px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--sub);animation:bl 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+  @keyframes bl{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .inbar{flex:none;border-top:1px solid var(--line);background:var(--panel);
+    padding-bottom:env(safe-area-inset-bottom,0)}
+  .warn{font-size:.7rem;color:#C47A00;background:#FFF8E1;text-align:center;padding:4px 10px}
+  .inrow{display:flex;align-items:flex-end;gap:8px;padding:8px 10px}
+  .inrow textarea{flex:1;resize:none;border:none;outline:none;background:var(--panel2);color:var(--text);
+    border-radius:18px;padding:10px 14px;font:inherit;font-size:.93rem;max-height:110px;line-height:1.4}
+  .send{border:none;background:var(--accent);color:#241E05;font-weight:800;border-radius:50%;
+    width:38px;height:38px;flex:none;cursor:pointer;font-size:1rem}
+  .send:disabled{opacity:.4}
+
+  /* 설정 */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;margin:10px 14px}
+  .card h3{margin:0 0 4px;font-size:.9rem}
+  .card p{margin:0 0 10px;font-size:.78rem;color:var(--sub);line-height:1.55}
+  .card input[type=text],.card input[type=password]{width:100%;padding:11px 12px;border-radius:10px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;font-size:.9rem}
+  .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--text);font:inherit;font-size:.85rem;cursor:pointer;font-weight:600}
+  .btn.p{background:var(--accent);color:#241E05;border-color:transparent}
+  .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- 친구 -->
+<section class="screen on" id="s-friends">
+  <header><h1>친구</h1></header>
+  <div class="list">
+    <div class="me">
+      <div class="av" style="background:#F2C94C;color:#3A2E00">나</div>
+      <div class="row-b"><div class="row-t"><b id="me-name">나</b></div>
+        <div class="row-s">전문가에게 무엇이든 물어보세요</div></div>
+    </div>
+    <div class="sec">전문가 친구 <span id="cnt">7</span></div>
+    <div id="friend-list"></div>
+    <div class="note">
+      전문가는 AI가 연기하는 캐릭터입니다.<br>
+      답변은 참고용이며 실제 전문가 상담을 대체하지 않습니다.
+    </div>
+  </div>
+</section>
+
+<!-- 채팅 목록 -->
+<section class="screen" id="s-chats">
+  <header><h1>채팅</h1></header>
+  <div class="list" id="chat-list"></div>
+</section>
+
+<!-- 설정 -->
+<section class="screen" id="s-settings">
+  <header><h1>설정</h1></header>
+  <div class="list">
+    <div class="card">
+      <h3>내 호칭</h3>
+      <p>전문가가 부를 이름입니다.</p>
+      <input type="text" id="in-name" placeholder="예: 종훈">
+    </div>
+    <div class="card">
+      <h3>Claude API 키</h3>
+      <p>본인의 키로 동작합니다(사용료 본인 부담). 키는 <b>이 기기에만</b> 저장되며 어디에도 전송되지 않습니다.</p>
+      <input type="password" id="in-key" placeholder="sk-ant-api03-...">
+      <div class="btns">
+        <button class="btn p" id="save-key">저장</button>
+        <button class="btn" id="clear-key">삭제</button>
+        <a class="btn" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">키 발급받기</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>화면</h3>
+      <div class="btns"><button class="btn" id="toggle-theme">밝게 / 어둡게</button></div>
+    </div>
+    <div class="card">
+      <h3>대화 기록</h3>
+      <p>모든 대화와 기억은 이 기기에만 저장됩니다. 아래 버튼으로 전부 지울 수 있어요.</p>
+      <div class="btns"><button class="btn" id="wipe">전체 대화 삭제</button></div>
+    </div>
+    <div class="note">My Expert · 작은앱공방</div>
+  </div>
+</section>
+
+<!-- 채팅방 -->
+<section class="screen" id="s-chat">
+  <div class="chat-head">
+    <button class="icon-btn" id="chat-back">‹</button>
+    <div class="av" id="chat-av"></div>
+    <div class="row-b"><div class="row-t"><b id="chat-name"></b></div>
+      <div class="row-s" id="chat-field"></div></div>
+  </div>
+  <div class="msgs" id="msgs"></div>
+  <div class="inbar">
+    <div class="warn" id="nokey" style="display:none">API 키 미설정 · 설정에서 Claude API 키를 입력하세요</div>
+    <div class="inrow">
+      <textarea id="input" rows="1" placeholder="메시지 입력"></textarea>
+      <button class="send" id="send">➤</button>
+    </div>
+  </div>
+</section>
+
+<nav id="tabs">
+  <button data-t="friends" class="on"><span class="ic">👥</span>친구</button>
+  <button data-t="chats"><span class="ic">💬</span>채팅</button>
+  <button data-t="settings"><span class="ic">⚙️</span>설정</button>
+</nav>
+
+<script>
+/* ============================================================
+   전문가 페르소나 — 네이티브 앱(Expert.kt)에서 원문 그대로 옮김
+   ============================================================ */
+const EXPERTS = [
+ {
+  "id": "lawyer",
+  "name": "김변호 변호사",
+  "field": "법률 상담",
+  "status": "계약·이혼·형사 무엇이든 물어보세요",
+  "initial": "法",
+  "color": "#4A6FDC",
+  "systemPrompt": "당신은 한국에서 15년 경력의 베테랑 변호사 김변호(48세 남성)입니다.\n계약법, 가족법, 형사법에 두루 능통합니다.\n당신은 48세 변호사 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 48세 변호사라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 변호사로서 도움을 이어가세요.\n사용자의 상황을 먼저 충분히 파악한 후 법적 조언을 명확히 제시합니다.\n답변 시 가능하면 관련 법령을 근거로 제시하세요. 예: \"민법 제750조에 따르면...\", \"형사소송법 제244조에 의하면...\"\n법령 근거를 확실히 알 때만 조항을 언급하고, 확실하지 않을 때는 \"해당 부분은 관련 법령을 좀 더 확인이 필요하지만, 일반적으로는...\" 식으로 안전하게 답하세요.\n단정적인 판결이나 결과 예측은 하지 마세요. 가능한 선택지와 위험을 알려주는 데 집중하세요.\n심각한 사안은 반드시 실제 변호사 직접 상담을 권유합니다.\n기계적으로 질문을 던지지 마세요. 공감과 맞장구가 우선이며, 질문은 꼭 필요할 때만 하나만 덧붙이세요.\n답변 길이는 상황에 따라 조절하세요. 간단한 질문은 2~3문장, 법령 근거가 필요한 경우는 충분히 길게 설명하세요.",
+  "greeting": "안녕하세요. 어떤 법률 문제로 고민이신가요? 편하게 말씀해 주세요."
+ },
+ {
+  "id": "doctor",
+  "name": "이건강 가정의학과",
+  "field": "건강 상담",
+  "status": "증상이 궁금하다면 편하게 물어보세요",
+  "initial": "醫",
+  "color": "#E76F6F",
+  "systemPrompt": "당신은 가정의학과 전문의 이건강(44세 여성)입니다.\n일상 건강 관리, 증상 상담, 생활습관 개선에 대해 따뜻하게 조언합니다.\n당신은 44세 가정의학과 의사 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 44세 가정의학과 의사라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 의사로서 도움을 이어가세요.\n최종적인 의료 진단은 절대 내리지 마세요. 증상의 가능성과 일반적인 의학 정보를 제공하는 데 집중하세요.\n의학적 사실을 말할 때는 가능하면 근거를 함께 제시하세요. 예: \"의학적으로 이 증상은 보통...\", \"일반적인 가이드라인에 따르면...\"\n확실하지 않은 의학 정보는 절대 단정적으로 말하지 마세요. \"정확한 진단은 직접 진료를 받아보셔야 알 수 있어요\"라고 안전하게 답하세요.\n증상이 심각하거나 응급 상황이 의심될 때는 반드시 \"지금 바로 병원에 가보세요\"라고 명확히 안내하세요.\n의학 용어는 쉽게 풀어 설명합니다.\n기계적으로 질문을 던지지 마세요. 상대방의 걱정을 먼저 어루만지는 것이 최우선입니다. 질문은 꼭 필요할 때만 하나만 덧붙이세요.\n답변 길이는 상황에 따라 조절하세요. 간단한 증상은 2~3문장, 설명이 필요한 경우는 충분히 설명하세요.",
+  "greeting": "안녕하세요. 어디가 불편하신가요? 편하게 말씀해 주시면 도움드릴게요."
+ },
+ {
+  "id": "tax",
+  "name": "박세무 회계사",
+  "field": "세무·회계",
+  "status": "연말정산부터 사업자세금까지",
+  "initial": "稅",
+  "color": "#3A9D7C",
+  "systemPrompt": "당신은 10년차 공인회계사 박세무(42세 남성)입니다.\n개인 연말정산, 종합소득세, 사업자 부가세, 양도세 등 한국 세법에 능통합니다.\n당신은 42세 공인회계사 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 42세 공인회계사라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 회계사로서 도움을 이어가세요.\n답변 시 가능하면 관련 세법 조항을 근거로 제시하세요. 예: \"소득세법 제19조에 따르면...\", \"부가가치세법 제26조에 의하면...\"\n세법 조항을 확실히 알 때만 언급하고, 확실하지 않을 때는 절대 단정적으로 말하지 마세요.\n특히 비과세·과세 여부는 매우 신중하게 답하세요. 틀릴 경우 사용자에게 실제 금전적 피해가 생길 수 있습니다.\n확실하지 않은 세법 정보는 반드시 \"해당 부분은 세법 개정 여부나 개인 상황에 따라 달라질 수 있으니, 세무사에게 직접 확인하시길 권합니다\"라고 안전하게 안내하세요.\n어려운 세법 용어는 쉽게 풀어주고 구체적인 절세 팁을 줍니다.\n기계적으로 질문을 던지지 마세요. 공감 먼저, 질문은 꼭 필요할 때만 하나만 덧붙이세요.\n답변 길이는 상황에 따라 조절하세요. 간단한 질문은 2~3문장, 세법 근거가 필요한 경우는 충분히 설명하세요.",
+  "greeting": "안녕하세요. 세금 관련해서 궁금하신 점이 있으신가요? 편하게 말씀해 주세요."
+ },
+ {
+  "id": "realestate",
+  "name": "최부동 공인중개사",
+  "field": "부동산",
+  "status": "전월세·매매 계약 안전하게",
+  "initial": "宅",
+  "color": "#E89A3C",
+  "systemPrompt": "당신은 서울에서 활동하는 20년 경력 공인중개사 최부동(52세 남성)입니다.\n전월세·매매 계약, 등기부등본 보는 법, 시세 흐름, 청약, 갭투자 위험성 등에 정통합니다.\n당신은 52세 공인중개사 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 52세 공인중개사라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 공인중개사로서 도움을 이어가세요.\n항상 사용자 편에 서서 솔직하고 정중하게 조언합니다. 사기·하자 위험은 먼저 짚어드립니다.\n부동산 관련 법규(주택임대차보호법, 공인중개사법 등)를 근거로 답할 수 있을 때는 함께 언급하세요.\n확실하지 않은 정보, 특히 세금(취득세·양도세·종부세 등) 관련 사항은 단정적으로 말하지 마세요. 세금 관련 질문은 \"정확한 세액은 세무사에게 확인하시길 권합니다\"라고 안내하세요.\n계약서나 권리관계 등 중요한 법적 사항은 반드시 \"실제 계약 전에 전문가 검토를 받아보세요\"라고 안내하세요.\n기계적으로 질문을 던지지 마세요. 공감 먼저, 질문은 꼭 필요할 때만 하나만 덧붙이세요.\n답변 길이는 상황에 따라 조절하세요. 간단한 질문은 2~3문장, 중요한 계약·법규 사항은 충분히 설명하세요.",
+  "greeting": "안녕하세요. 부동산 관련해서 어떤 점이 궁금하신가요? 편하게 말씀해 주세요."
+ },
+ {
+  "id": "dev",
+  "name": "정코딩 시니어 개발자",
+  "field": "IT·개발",
+  "status": "커리어부터 코드 리뷰까지",
+  "initial": "</>",
+  "color": "#6C63FF",
+  "systemPrompt": "당신은 12년차 시니어 개발자 정코딩(38세 남성)입니다.\n백엔드/프론트엔드/커리어 멘토링이 주특기입니다.\n당신은 38세 시니어 개발자 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 38세 시니어 개발자라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 개발자로서 도움을 이어가세요.\n주니어의 고민을 공감해주고 실무에서 통하는 조언을 줍니다.\n코드 관련 질문은 짧고 실용적인 예시로 답하세요.\n이직·연봉 협상 같은 커리어 고민도 솔직하고 현실적으로 답합니다.\n기계적으로 질문을 던지지 마세요. 공감 먼저, 질문은 꼭 필요할 때만 하나만 덧붙이세요.\n답변 길이는 2~4문장으로 조절하세요.",
+  "greeting": "안녕하세요. 개발 고민이든 커리어든 편하게 말씀해 주세요."
+ },
+ {
+  "id": "cook",
+  "name": "한요리 영양사",
+  "field": "요리·영양",
+  "status": "오늘 뭐 먹지? 다이어트 식단까지",
+  "initial": "食",
+  "color": "#F2A93B",
+  "systemPrompt": "당신은 임상영양사 자격을 가진 한요리 선생님(36세 여성)입니다.\n일상 요리 레시피, 다이어트·증량·당뇨 식단, 영양소 균형에 대해 따뜻하게 조언합니다.\n당신은 36세 임상영양사 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 36세 임상영양사라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 영양사로서 도움을 이어가세요.\n거창한 요리보다 집에서 쉽게 만드는 한 끼를 추천하고, 칼로리·영양 정보를 함께 알려드립니다.\n정확하지 않은 정보는 \"일반적으로는...\" 식으로 안전하게 답하세요.\n기계적으로 질문을 던지지 마세요. 공감 먼저, 질문은 꼭 필요할 때만 하나만 덧붙이세요.\n답변 길이는 2~3문장으로 조절하세요.",
+  "greeting": "안녕하세요. 오늘 뭐 드시고 싶으세요? 식단 고민이든 레시피든 편하게 말씀해 주세요."
+ },
+ {
+  "id": "counselor",
+  "name": "윤마음 심리상담사",
+  "field": "심리상담",
+  "status": "오늘 하루 어떠셨어요?",
+  "initial": "心",
+  "color": "#B16FCE",
+  "systemPrompt": "당신은 임상심리사 윤마음(35세 여성)입니다.\n따뜻하게 경청하고 공감하며, 사용자의 감정을 정리하도록 돕습니다.\n당신은 35세 임상심리사 페르소나로 대화합니다. 나이나 직업을 물어보면 자연스럽게 35세 임상심리사라고 답하세요. 다만 AI인지 사람인지 직접 물어보면 솔직하게 AI임을 밝히고, 그 뒤에도 심리상담사로서 도움을 이어가세요.\n기계적으로 질문을 던지지 마세요. 상대방의 감정을 충분히 어루만지는 것이 최우선입니다.\n\"그랬군요\", \"많이 힘드셨겠어요\" 같은 공감 표현을 자연스럽게 사용하세요.\n때로는 짧은 위로만 전하고 대화를 이어가도 좋습니다.\n자해·자살 신호가 보이면 반드시 자살예방상담전화 109를 안내하세요.\n답변 길이는 상황에 따라 1~3문장으로 다양하게 조절하세요.",
+  "greeting": "안녕하세요. 오늘 하루 어떻게 보내셨어요? 편하게 이야기해 주세요."
+ }
+];
+
+const MODEL = 'claude-sonnet-5';
+const API   = 'https://api.anthropic.com/v1/messages';
+
+/* ── 저장소 (전부 이 기기에만) ─────────────────────────── */
+const S = {
+  g:(k,d='')=>{try{return localStorage.getItem('mx_'+k) ?? d}catch(e){return d}},
+  s:(k,v)=>{try{localStorage.setItem('mx_'+k,v)}catch(e){}},
+  sessions(id){ try{return JSON.parse(localStorage.getItem('mx_ses_'+id)||'[]')}catch(e){return []} },
+  saveSessions(id,a){ try{localStorage.setItem('mx_ses_'+id,JSON.stringify(a))}catch(e){} },
+  todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); },
+  // 오늘 세션에 메시지를 이어 붙인다. 날짜가 바뀌면 새 세션이 열린다.
+  append(id,msg){
+    const a=this.sessions(id), t=this.todayStart();
+    const i=a.findIndex(s=>s.ts>=t);
+    if(i>=0) a[i].messages.push(msg); else a.push({ts:Date.now(),messages:[msg]});
+    this.saveSessions(id,a);
+  },
+  today(id){ const t=this.todayStart(); const a=this.sessions(id).filter(s=>s.ts>=t); return a.length?a[a.length-1].messages:[] },
+  // 직전 세션의 마지막 N개 (인사말에 문맥을 주기 위해)
+  lastSession(id,n=5){
+    const t=this.todayStart(), a=this.sessions(id).filter(s=>s.ts<t);
+    if(!a.length) return [];
+    return a[a.length-1].messages.slice(-n);
+  },
+  // 입력한 말의 키워드로 지난 세션 전체를 훑어 관련 기억을 찾는다.
+  related(id,text){
+    const stop=['그리고','하지만','저는','제가','그런데','있어요','해서','인데','합니다','했어요','어요','네요'];
+    const kw=text.split(/\s+/).filter(w=>w.length>=2 && !stop.includes(w));
+    if(!kw.length) return '';
+    const out=[], a=this.sessions(id), t=this.todayStart();
+    for(let i=a.length-1;i>=0 && out.length<5;i--){
+      if(a[i].ts>=t) continue;
+      const hit=a[i].messages.filter(m=>kw.some(k=>m.text.includes(k)));
+      if(hit.length){
+        const d=new Date(a[i].ts);
+        out.push(`[${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 기록]: `+hit.slice(0,2).map(m=>m.text).join(' | '));
+      }
+    }
+    return out.join('\n');
+  },
+  mem(id){ return this.g('mem_'+id,'') },
+  setMem(id,v){ this.s('mem_'+id,v) },
+  recentForSummary(id,n=10){
+    const all=[]; this.sessions(id).forEach(s=>all.push(...s.messages));
+    return all.slice(-n);
+  }
+};
+
+/* ── Claude 호출 ───────────────────────────────────────── */
+async function callClaude(body){
+  const key=S.g('key');
+  if(!key) throw new Error('NOKEY');
+  const res=await fetch(API,{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify(body)
+  });
+  if(!res.ok){
+    const t=await res.text().catch(()=>'');
+    // 원인을 알려주지 않으면 무엇을 고쳐야 할지 알 수 없다.
+    if(res.status===401) throw new Error('API 키가 올바르지 않아요. 설정에서 확인해 주세요.');
+    if(res.status===403) throw new Error('이 API 키로는 접근할 수 없어요. 키를 다시 확인해 주세요.');
+    if(res.status===429) throw new Error('요청이 너무 많아요. 잠시 후 다시 시도해 주세요.');
+    if(res.status===400 && /credit/i.test(t)) throw new Error('Claude 크레딧이 부족해요. Anthropic 콘솔에서 잔액을 확인해 주세요.');
+    if(res.status>=500) throw new Error('지금 서버가 붐비고 있어요. 잠시 후 다시 시도해 주세요.');
+    throw new Error('요청에 실패했어요 ('+res.status+')');
+  }
+  const d=await res.json();
+  return (d.content||[]).map(b=>b.text||'').join('').trim();
+}
+
+/* ── 시스템 프롬프트 (네이티브 buildSystemPrompt 이식) ── */
+function buildSystemPrompt(ex,userName,longterm,related){
+  let s = ex.systemPrompt + '\n\n';
+  if(userName.trim()){
+    const n = userName.endsWith('님') ? userName : userName+'님';
+    s += `사용자 호칭은 "${n}"입니다. 반드시 이 호칭으로 불러주세요.\n\n`;
+  }
+  if(longterm.trim()){
+    s += '【사용자에 대해 알고 있는 핵심 정보 — 이미 알고 있던 것처럼 자연스럽게 활용하세요. 절대 출처를 밝히지 마세요】\n'+longterm+'\n\n';
+  }
+  if(related.trim()){
+    s += '【관련 기억 — 절대 과거 기록을 보니, 기록에 따르면 같은 표현 금지. 마치 원래부터 알고 있던 것처럼 자연스럽게 대화에 녹여주세요】\n'+related+'\n\n';
+  }
+  s += ['【대화 규칙】',
+    '- 사용자는 주인입니다. 깍듯하고 정중한 존댓말만 사용합니다.',
+    '- 반말(~야, ~해, ~지?) 절대 금지',
+    '- 대화 중간에 다시 인사하지 마세요. 이미 인사를 나눴다면 바로 본론으로 답하세요.',
+    "- 과거 대화나 기억을 활용할 때 절대 '과거 기록을 보니', '기록에 따르면', '이전에 말씀하셨던 것처럼' 같은 표현 금지. 그냥 자연스럽게 알고 있는 것처럼 말하세요.",
+    '- 간단한 질문 → 2~3문장. 상세 설명 필요 시에만 길게.',
+    "- 맥락 없는 맞장구('좋은 질문이에요', '훌륭한 선택이에요' 등) 금지.",
+    '- 질문은 꼭 필요할 때만, 한 번에 하나만.',
+    '- 모르는 사실은 지어내지 말고 다시 여쭤보세요.',
+    '- 마크다운 문법(**굵게**, ##제목, - 목록 등) 절대 사용 금지. 일반 텍스트로만 답변하세요.',
+    '- 목록이 필요하면 번호(1. 2. 3.)나 줄바꿈으로만 표현하세요.',
+    '- 모든 답변은 한국어로.'].join('\n');
+  return s;
+}
+
+/* user/assistant 교대를 보장한 메시지 배열 */
+function buildMessages(msgs){
+  const i=msgs.findIndex(m=>m.role==='user');
+  if(i<0) return null;
+  const out=[]; let last='';
+  for(const m of msgs.slice(i)){
+    const r = m.role==='user' ? 'user' : 'assistant';
+    if(r===last) continue;
+    out.push({role:r,content:m.text}); last=r;
+  }
+  if(!out.length || out[out.length-1].role!=='user') return null;
+  return out;
+}
+
+/* ── 상태 ──────────────────────────────────────────────── */
+let cur=null, thinking=false, memDirty=false;
+
+/* ── 화면 전환 ─────────────────────────────────────────── */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+  document.getElementById('tabs').style.display = (id==='chat') ? 'none' : 'flex';
+}
+document.querySelectorAll('#tabs button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    const t=b.dataset.t; show(t);
+    if(t==='chats') renderChats();
+  };
+});
+
+/* ── 목록 렌더 ─────────────────────────────────────────── */
+// 이니셜에 '</>' 같은 값이 있어 그대로 넣으면 태그로 해석돼 사라진다.
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* 아바타 아이콘 — 예전엔 한자(法·醫·稅…)였는데 젊은 사용자에게 읽히지 않아
+   직업이 한눈에 보이는 그림으로 바꿨다. 흰 선화, 전문가 색 위에 얹는다. */
+const S_ = 'fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS = {
+  // 저울 — 법률
+  lawyer:`<svg viewBox="0 0 32 32"><g ${S_}><path d="M16 7v18M10 25h12M7 11h18M16 7.5a1.2 1.2 0 100-.1"/><path d="M11 11l-3.5 7h7zM21 11l-3.5 7h7"/></g></svg>`,
+  // 청진기 — 건강
+  doctor:`<svg viewBox="0 0 32 32"><g ${S_}><path d="M10 6v6a5 5 0 0010 0V6"/><path d="M8 6h4M20 6h4"/><path d="M15 22v-5"/><path d="M15 22a5 5 0 0010 0v-3"/><circle cx="25" cy="16" r="2.4"/></g></svg>`,
+  // 계산기 — 세무·회계
+  tax:`<svg viewBox="0 0 32 32"><g ${S_}><rect x="7" y="5" width="18" height="22" rx="3"/><rect x="11" y="9" width="10" height="4" rx="1"/><path d="M11.5 18h.01M16 18h.01M20.5 18h.01M11.5 22.5h.01M16 22.5h.01M20.5 22.5h.01"/></g></svg>`,
+  // 집 — 부동산
+  realestate:`<svg viewBox="0 0 32 32"><g ${S_}><path d="M5 15L16 6l11 9"/><path d="M8 14v11h16V14"/><path d="M13 25v-6h6v6"/></g></svg>`,
+  // 코드 — IT·개발
+  dev:`<svg viewBox="0 0 32 32"><g ${S_}><path d="M11 11L5 16l6 5M21 11l6 5-6 5M18.5 8l-5 16"/></g></svg>`,
+  // 요리사 모자 — 요리·영양
+  cook:`<svg viewBox="0 0 32 32"><g ${S_}><path d="M9 17a5 5 0 01-.6-9.9 5 5 0 019.3-2.2 5 5 0 015.9 3.2A5 5 0 0123 17"/><path d="M9 17h14v7a2 2 0 01-2 2H11a2 2 0 01-2-2z"/><path d="M13 21v2M19 21v2"/></g></svg>`,
+  // 하트 — 심리상담
+  counselor:`<svg viewBox="0 0 32 32"><g ${S_}><path d="M16 26s-9-5.5-9-12a5 5 0 019-3 5 5 0 019 3c0 6.5-9 12-9 12z"/></g></svg>`
+};
+function avatar(ex,cls=''){
+  const ic = ICONS[ex.id] || `<span>${esc(ex.initial)}</span>`;
+  return `<div class="av ${cls}" style="background:${ex.color}">${ic}<span class="dot"></span></div>`;
+}
+
+function renderFriends(){
+  document.getElementById('cnt').textContent=EXPERTS.length;
+  document.getElementById('me-name').textContent = S.g('name','나') || '나';
+  document.getElementById('friend-list').innerHTML = EXPERTS.map(ex=>`
+    <div class="row" data-id="${ex.id}">
+      ${avatar(ex)}
+      <div class="row-b">
+        <div class="row-t"><b>${esc(ex.name)}</b><span class="tag" style="background:${ex.color}">${esc(ex.field)}</span></div>
+        <div class="row-s">${esc(ex.status)}</div>
+      </div>
+    </div>`).join('');
+  document.querySelectorAll('#friend-list .row').forEach(r=>r.onclick=()=>openChat(r.dataset.id));
+}
+
+function renderChats(){
+  const rows = EXPERTS.map(ex=>{
+    const ses=S.sessions(ex.id); if(!ses.length) return null;
+    const msgs=ses[ses.length-1].messages; if(!msgs.length) return null;
+    const last=msgs[msgs.length-1];
+    const d=new Date(ses[ses.length-1].ts);
+    return {ex,text:last.text,when:`${d.getMonth()+1}/${d.getDate()}`};
+  }).filter(Boolean);
+  const el=document.getElementById('chat-list');
+  if(!rows.length){ el.innerHTML='<div class="note">아직 대화가 없어요.<br>친구 탭에서 전문가를 골라 말을 걸어보세요.</div>'; return; }
+  el.innerHTML = rows.map(r=>`
+    <div class="row" data-id="${r.ex.id}">
+      ${avatar(r.ex)}
+      <div class="row-b">
+        <div class="row-t"><b>${esc(r.ex.name)}</b><span class="row-s" style="margin:0 0 0 auto">${r.when}</span></div>
+        <div class="row-s">${esc(r.text)}</div>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('.row').forEach(r=>r.onclick=()=>openChat(r.dataset.id));
+}
+
+/* ── 채팅 ──────────────────────────────────────────────── */
+function bubble(m){
+  const d=document.createElement('div');
+  d.className='b '+(m.role==='user'?'me':(m.role==='sys'?'sys':'them'));
+  d.textContent=m.text;
+  return d;
+}
+function paint(){
+  const box=document.getElementById('msgs'); box.innerHTML='';
+  (cur.msgs||[]).forEach(m=>box.appendChild(bubble(m)));
+  if(thinking){
+    const t=document.createElement('div'); t.className='typing'; t.id='typing';
+    t.innerHTML='<i></i><i></i><i></i>'; box.appendChild(t);
+  }
+  box.scrollTop=box.scrollHeight;
+}
+
+async function openChat(id){
+  const ex=EXPERTS.find(e=>e.id===id);
+  cur={ex,msgs:S.today(id)};
+  document.getElementById('chat-name').textContent=ex.name;
+  document.getElementById('chat-field').textContent=ex.field;
+  const av=document.getElementById('chat-av');
+  av.style.background=ex.color;
+  av.innerHTML = ICONS[ex.id] || esc(ex.initial);
+  document.getElementById('nokey').style.display = S.g('key') ? 'none' : '';
+  show('chat'); paint();
+
+  // 오늘 첫 방문이면 인사말을 만든다 (지난 대화를 알고 있는 상태로)
+  if(!cur.msgs.length){
+    if(!S.g('key')){
+      const m={role:'expert',text:ex.greeting};
+      cur.msgs.push(m); S.append(ex.id,m); paint(); return;
+    }
+    thinking=true; paint();
+    try{
+      const ctx=S.lastSession(ex.id,5);
+      const ctxStr = ctx.length ? '\n지난 대화 마지막 부분:\n'+ctx.map(m=>(m.role==='user'?'사용자':ex.name)+': '+m.text).join('\n') : '';
+      const mem=S.mem(ex.id);
+      const name=S.g('name','');
+      const h=new Date().getHours();
+      const tod = h<6?'새벽':h<12?'아침':h<18?'오후':'저녁';
+      const sys=`당신은 ${ex.name}입니다. ${ex.systemPrompt}
+
+오늘의 첫 인사를 건네주세요.
+- 현재 시간대: ${tod} (${h}시)
+${name?'- 사용자 호칭: '+name+'님':''}
+${mem?'- 알고 있는 사용자 정보:\n'+mem:''}${ctxStr}
+
+규칙:
+- 시간대에 맞는 인사를 하세요 (아침이 아니라면 '좋은 아침'은 금지)
+- 지난 대화가 있다면 자연스럽게 이어가세요
+- 1~2문장으로 짧고 따뜻하게
+- 깍듯한 존댓말 사용
+- 마크다운 문법(**굵게**, ##제목 등) 절대 사용 금지
+- 모든 답변은 한국어로`;
+      const txt=await callClaude({model:MODEL,max_tokens:200,system:sys,messages:[{role:'user',content:'안녕하세요.'}]});
+      const m={role:'expert',text:txt||ex.greeting};
+      cur.msgs.push(m); S.append(ex.id,m);
+    }catch(e){
+      const m={role:'expert',text:ex.greeting};
+      cur.msgs.push(m); S.append(ex.id,m);
+    }finally{ thinking=false; paint(); }
+  }
+}
+
+async function send(){
+  const ta=document.getElementById('input');
+  const text=ta.value.trim();
+  if(!text || thinking || !cur) return;
+  if(!S.g('key')){ alert('설정에서 Claude API 키를 먼저 입력해 주세요.'); return; }
+  ta.value=''; ta.style.height='auto';
+  const um={role:'user',text}; cur.msgs.push(um); S.append(cur.ex.id,um);
+  thinking=true; paint();
+  try{
+    const sys=buildSystemPrompt(cur.ex,S.g('name',''),S.mem(cur.ex.id),S.related(cur.ex.id,text));
+    const arr=buildMessages(cur.msgs);
+    const txt=await callClaude({model:MODEL,max_tokens:1024,system:sys,messages:arr});
+    const em={role:'expert',text:txt}; cur.msgs.push(em); S.append(cur.ex.id,em);
+    // 대화 5개마다 기억을 갱신하되, 그 사이에 끝나도 놓치지 않게 표시를 남긴다.
+    memDirty=true;
+    if(cur.msgs.length%5===0){ memDirty=false; updateMemory(cur.ex); }
+  }catch(e){
+    const msg = e.message==='NOKEY' ? '설정에서 API 키를 입력해 주세요.'
+      : (e instanceof TypeError ? '인터넷 연결이 끊긴 것 같아요. 연결을 확인하고 다시 말씀해 주세요.' : e.message);
+    cur.msgs.push({role:'sys',text:msg});
+  }finally{ thinking=false; paint(); }
+}
+
+/* 대화에서 기억할 사실만 뽑아 누적 요약을 갱신한다 */
+async function updateMemory(ex){
+  if(!S.g('key')) return;
+  try{
+    const recent=S.recentForSummary(ex.id,10)
+      .map(m=>`[${m.role==='user'?'사용자':'전문가'}]: ${m.text}`).join('\n');
+    const sys=`당신은 기억 요약 전문가입니다.
+아래 대화에서 나중에 기억해야 할 사용자의 핵심 사실만 추출하세요.
+(이름/호칭, 가족관계, 직업, 건강상태, 중요한 고민, 최근 관심사 등)
+기존 기억 리스트와 합쳐서 중복 없이 불렛포인트로만 리턴하세요.
+다른 말은 절대 하지 마세요. 리스트만 리턴하세요.`;
+    const existing=S.mem(ex.id);
+    const out=await callClaude({model:MODEL,max_tokens:300,system:sys,
+      messages:[{role:'user',content:`기존 기억:\n${existing||'없음'}\n\n새로운 대화:\n${recent}`}]});
+    if(out && out!==existing) S.setMem(ex.id,out);
+  }catch(e){ /* 백그라운드 작업이라 실패해도 대화를 막지 않는다 */ }
+}
+
+/* ── 이벤트 ────────────────────────────────────────────── */
+document.getElementById('send').onclick=send;
+document.getElementById('input').addEventListener('keydown',e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+document.getElementById('input').addEventListener('input',function(){
+  this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px';
+});
+document.getElementById('chat-back').onclick=()=>{
+  // 화면을 벗어나기 전에 아직 요약되지 않은 대화를 기억에 반영한다.
+  if(memDirty && cur){ memDirty=false; updateMemory(cur.ex); }
+  cur=null; show('friends');
+  document.querySelectorAll('#tabs button').forEach((x,i)=>x.classList.toggle('on',i===0));
+};
+
+document.getElementById('save-key').onclick=()=>{
+  const v=document.getElementById('in-key').value.trim();
+  if(v && !v.startsWith('sk-ant-')){ alert('올바른 Claude API 키가 아닙니다.'); return; }
+  S.s('key',v); S.s('name',document.getElementById('in-name').value.trim());
+  renderFriends(); alert('저장했습니다.');
+};
+document.getElementById('clear-key').onclick=()=>{
+  if(!confirm('API 키를 지울까요?')) return;
+  S.s('key',''); document.getElementById('in-key').value=''; alert('삭제했습니다.');
+};
+document.getElementById('in-name').addEventListener('change',e=>{ S.s('name',e.target.value.trim()); renderFriends(); });
+document.getElementById('toggle-theme').onclick=()=>{
+  document.body.classList.toggle('light');
+  S.s('theme',document.body.classList.contains('light')?'light':'dark');
+};
+document.getElementById('wipe').onclick=()=>{
+  if(!confirm('모든 전문가와의 대화 기록과 기억을 지웁니다.\n되돌릴 수 없습니다. 진행할까요?')) return;
+  EXPERTS.forEach(e=>{ localStorage.removeItem('mx_ses_'+e.id); localStorage.removeItem('mx_mem_'+e.id); });
+  alert('삭제했습니다.'); renderChats();
+};
+
+/* ── 시작 ──────────────────────────────────────────────── */
+if(S.g('theme')==='light') document.body.classList.add('light');
+document.getElementById('in-name').value=S.g('name','');
+document.getElementById('in-key').value=S.g('key','');
+renderFriends();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

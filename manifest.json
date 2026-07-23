@@ -1,0 +1,24 @@
+{
+  "name": "My Expert — 전문가 친구들",
+  "short_name": "My Expert",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B1220",
+  "theme_color": "#0B1220",
+  "description": "분야별 전문가 페르소나와 대화하고, 지난 대화를 기억하는 AI 친구.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
