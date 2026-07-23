@@ -57,11 +57,48 @@
   .chat-head{display:flex;align-items:center;gap:10px;padding:10px 12px;flex:none;
     border-bottom:1px solid var(--line);background:var(--panel)}
   .chat-head .av{width:36px;height:36px;border-radius:11px;font-size:.85rem}
-  .msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px}
-  .b{max-width:78%;padding:9px 12px;border-radius:14px;font-size:.93rem;line-height:1.55;white-space:pre-wrap;word-break:break-word}
-  .b.them{background:var(--panel2);align-self:flex-start;border-top-left-radius:5px}
-  .b.me{background:var(--bubble-me);color:var(--bubble-me-t);align-self:flex-end;border-top-right-radius:5px}
+  .msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:10px}
+  .daysep{align-self:center;background:var(--panel2);color:var(--sub);font-size:.72rem;
+    padding:4px 12px;border-radius:999px;margin:2px 0 4px}
+  .turn{display:flex;gap:8px;max-width:88%}
+  .turn.them{align-self:flex-start}
+  .turn.me{align-self:flex-end;flex-direction:row-reverse}
+  .turn .av{width:34px;height:34px;border-radius:11px;flex:none;margin-top:18px}
+  .turn .av .dot{width:9px;height:9px}
+  .who{font-size:.76rem;color:var(--sub);margin:0 0 3px 2px}
+  .line{display:flex;align-items:flex-end;gap:5px}
+  .turn.me .line{flex-direction:row-reverse}
+  .time{font-size:.66rem;color:var(--sub);white-space:nowrap;padding-bottom:2px}
+  .b{max-width:100%;padding:9px 12px;border-radius:14px;font-size:.93rem;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .b.them{background:var(--panel2);border-top-left-radius:5px}
+  .b.me{background:var(--bubble-me);color:var(--bubble-me-t);border-top-right-radius:5px}
   .b.sys{align-self:center;background:none;color:var(--sub);font-size:.78rem;text-align:center;max-width:90%}
+  /* 검색 / 지난 대화 */
+  .searchbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .searchbar input{flex:1;border:none;outline:none;background:var(--panel2);color:var(--text);
+    border-radius:18px;padding:9px 14px;font:inherit;font-size:.9rem}
+  .results{flex:1;overflow-y:auto;background:var(--bg)}
+  .results .hit{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .results .hit:active{background:var(--panel2)}
+  .results .hd{font-size:.74rem;color:var(--accent);font-weight:700;margin-bottom:3px}
+  .results .tx{font-size:.86rem;line-height:1.5}
+  .results mark{background:var(--accent);color:#241E05;border-radius:3px;padding:0 2px}
+  .viewing{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--panel2);
+    border-bottom:1px solid var(--line);font-size:.78rem;color:var(--sub)}
+  .viewing span{flex:1}
+  .viewing .btn{padding:5px 10px;font-size:.75rem}
+  .hist{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column}
+  .hist header{border-bottom:1px solid var(--line)}
+  .hist h1{font-size:1.1rem}
+  .hist .sub{font-size:.76rem;color:var(--sub);padding:0 16px 10px;margin-top:-4px}
+  .hitem{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin:8px 12px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .hitem .hb{flex:1;min-width:0;cursor:pointer}
+  .hitem .hd{color:var(--accent);font-weight:700;font-size:.86rem;margin-bottom:4px}
+  .hitem .hp{font-size:.84rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hitem .hm{font-size:.72rem;color:var(--sub);margin-top:4px}
+  .hitem .del{background:none;border:none;font-size:1.05rem;cursor:pointer;padding:2px 4px}
+  .tip{font-size:.74rem;color:var(--sub);text-align:center;padding:10px 16px 18px}
   .typing{align-self:flex-start;display:flex;gap:4px;padding:11px 14px;background:var(--panel2);border-radius:14px;border-top-left-radius:5px}
   .typing i{width:6px;height:6px;border-radius:50%;background:var(--sub);animation:bl 1.2s infinite}
   .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
@@ -94,7 +131,9 @@
 
 <!-- 친구 -->
 <section class="screen on" id="s-friends">
-  <header><h1>친구</h1></header>
+  <header><h1>친구</h1>
+    <button class="icon-btn" id="manage-open" title="친구 관리">👤+</button>
+  </header>
   <div class="list">
     <div class="me">
       <div class="av" style="background:#F2C94C;color:#3A2E00">나</div>
@@ -136,6 +175,17 @@
       </div>
     </div>
     <div class="card">
+      <h3>글자 크기</h3>
+      <p>대화 글씨가 작으면 키워서 보세요.</p>
+      <div class="btns" id="fs-btns">
+        <button class="btn" data-fs="0.9">작게</button>
+        <button class="btn" data-fs="1">보통</button>
+        <button class="btn" data-fs="1.15">크게</button>
+        <button class="btn" data-fs="1.3">아주 크게</button>
+      </div>
+      <p style="margin:10px 0 0" id="fs-sample">가나다 ABC 123 — 이렇게 보입니다.</p>
+    </div>
+    <div class="card">
       <h3>화면</h3>
       <div class="btns"><button class="btn" id="toggle-theme">밝게 / 어둡게</button></div>
     </div>
@@ -155,6 +205,17 @@
     <div class="av" id="chat-av"></div>
     <div class="row-b"><div class="row-t"><b id="chat-name"></b></div>
       <div class="row-s" id="chat-field"></div></div>
+    <button class="icon-btn" id="search-open" title="지난 대화 검색">🔍</button>
+    <button class="icon-btn" id="hist-open" title="지난 대화 보기">☰</button>
+  </div>
+  <div class="searchbar" id="searchbar" style="display:none">
+    <input type="search" id="q" placeholder="지난 대화에서 찾기">
+    <button class="icon-btn" id="search-close">✕</button>
+  </div>
+  <div class="results" id="results" style="display:none"></div>
+  <div class="viewing" id="viewing" style="display:none">
+    <span id="viewing-when"></span>
+    <button class="btn" id="viewing-back">오늘 대화로</button>
   </div>
   <div class="msgs" id="msgs"></div>
   <div class="inbar">
@@ -165,6 +226,21 @@
     </div>
   </div>
 </section>
+
+<!-- 친구 관리 (별 토글로 목록 표시 여부 선택) -->
+<div class="hist" id="manage" style="display:none">
+  <header><h1>친구 관리</h1><button class="icon-btn" id="manage-done" style="color:var(--accent);font-weight:700;font-size:.95rem">완료</button></header>
+  <div class="sub" id="manage-sub"></div>
+  <div class="list" id="manage-list"></div>
+</div>
+
+<!-- 지난 대화 보기 -->
+<div class="hist" id="hist" style="display:none">
+  <header><h1>지난 대화 보기</h1><button class="icon-btn" id="hist-close">✕</button></header>
+  <div class="sub" id="hist-sub"></div>
+  <div class="list" id="hist-list"></div>
+  <div class="tip">💡 항목 우측 휴지통을 누르면 삭제해요</div>
+</div>
 
 <nav id="tabs">
   <button data-t="friends" class="on"><span class="ic">👥</span>친구</button>
@@ -413,10 +489,19 @@ function avatar(ex,cls=''){
   return `<div class="av ${cls}" style="background:${ex.color}">${ic}<span class="dot"></span></div>`;
 }
 
+/* 즐겨찾기 — 친구 목록에 보일 전문가를 고른다. 기본은 전원 표시. */
+function isFav(id){ return S.g('fav_'+id,'1')!=='0'; }
+function setFav(id,on){ S.s('fav_'+id, on?'1':'0'); }
+function visibleExperts(){
+  const v=EXPERTS.filter(e=>isFav(e.id));
+  return v.length?v:EXPERTS;   // 전부 끄면 빈 화면이 되니 그때는 전원 표시
+}
+
 function renderFriends(){
-  document.getElementById('cnt').textContent=EXPERTS.length;
+  const list=visibleExperts();
+  document.getElementById('cnt').textContent=list.length;
   document.getElementById('me-name').textContent = S.g('name','나') || '나';
-  document.getElementById('friend-list').innerHTML = EXPERTS.map(ex=>`
+  document.getElementById('friend-list').innerHTML = list.map(ex=>`
     <div class="row" data-id="${ex.id}">
       ${avatar(ex)}
       <div class="row-b">
@@ -428,7 +513,7 @@ function renderFriends(){
 }
 
 function renderChats(){
-  const rows = EXPERTS.map(ex=>{
+  const rows = visibleExperts().map(ex=>{
     const ses=S.sessions(ex.id); if(!ses.length) return null;
     const msgs=ses[ses.length-1].messages; if(!msgs.length) return null;
     const last=msgs[msgs.length-1];
@@ -449,15 +534,52 @@ function renderChats(){
 }
 
 /* ── 채팅 ──────────────────────────────────────────────── */
-function bubble(m){
-  const d=document.createElement('div');
-  d.className='b '+(m.role==='user'?'me':(m.role==='sys'?'sys':'them'));
-  d.textContent=m.text;
-  return d;
+function hhmm(ts){
+  if(!ts) return '';
+  const d=new Date(ts), h=d.getHours();
+  const ap = h<12 ? '오전' : '오후';
+  const h12 = h%12===0 ? 12 : h%12;
+  return `${ap} ${h12}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function dayLabel(ts){
+  const d=new Date(ts), t=new Date();
+  const same=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+  if(same(d,t)) return '오늘';
+  const y=new Date(t.getTime()-86400000);
+  if(same(d,y)) return '어제';
+  const w=['일','월','화','수','목','금','토'][d.getDay()];
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${w})`;
 }
 function paint(){
   const box=document.getElementById('msgs'); box.innerHTML='';
-  (cur.msgs||[]).forEach(m=>box.appendChild(bubble(m)));
+  const msgs=cur.msgs||[];
+  let lastDay='';
+  msgs.forEach(m=>{
+    // 날짜가 바뀌면 구분선을 넣는다
+    const lab = dayLabel(m.ts||Date.now());
+    if(lab!==lastDay){
+      const s=document.createElement('div'); s.className='daysep'; s.textContent=lab;
+      box.appendChild(s); lastDay=lab;
+    }
+    if(m.role==='sys'){
+      const d=document.createElement('div'); d.className='b sys'; d.textContent=m.text;
+      box.appendChild(d); return;
+    }
+    const me = m.role==='user';
+    const turn=document.createElement('div');
+    turn.className='turn '+(me?'me':'them');
+    turn.innerHTML =
+      (me ? '' : avatar(cur.ex)) +
+      `<div style="min-width:0">
+         ${me?'':`<div class="who">${esc(cur.ex.name)}</div>`}
+         <div class="line">
+           <div class="b ${me?'me':'them'}"></div>
+           <span class="time">${hhmm(m.ts)}</span>
+         </div>
+       </div>`;
+    turn.querySelector('.b').textContent = m.text;   // 본문은 textContent로 안전하게
+    box.appendChild(turn);
+  });
   if(thinking){
     const t=document.createElement('div'); t.className='typing'; t.id='typing';
     t.innerHTML='<i></i><i></i><i></i>'; box.appendChild(t);
@@ -474,12 +596,17 @@ async function openChat(id){
   av.style.background=ex.color;
   av.innerHTML = ICONS[ex.id] || esc(ex.initial);
   document.getElementById('nokey').style.display = S.g('key') ? 'none' : '';
+  // 다른 전문가로 옮길 때 검색·지난대화 열람 상태가 남지 않게 초기화
+  viewing=null;
+  closeSearch();
+  document.getElementById('viewing').style.display='none';
+  document.querySelector('#s-chat .inbar').style.display='';
   show('chat'); paint();
 
   // 오늘 첫 방문이면 인사말을 만든다 (지난 대화를 알고 있는 상태로)
   if(!cur.msgs.length){
     if(!S.g('key')){
-      const m={role:'expert',text:ex.greeting};
+      const m={role:'expert',text:ex.greeting,ts:Date.now()};
       cur.msgs.push(m); S.append(ex.id,m); paint(); return;
     }
     thinking=true; paint();
@@ -505,10 +632,10 @@ ${mem?'- 알고 있는 사용자 정보:\n'+mem:''}${ctxStr}
 - 마크다운 문법(**굵게**, ##제목 등) 절대 사용 금지
 - 모든 답변은 한국어로`;
       const txt=await callClaude({model:MODEL,max_tokens:200,system:sys,messages:[{role:'user',content:'안녕하세요.'}]});
-      const m={role:'expert',text:txt||ex.greeting};
+      const m={role:'expert',text:txt||ex.greeting,ts:Date.now()};
       cur.msgs.push(m); S.append(ex.id,m);
     }catch(e){
-      const m={role:'expert',text:ex.greeting};
+      const m={role:'expert',text:ex.greeting,ts:Date.now()};
       cur.msgs.push(m); S.append(ex.id,m);
     }finally{ thinking=false; paint(); }
   }
@@ -520,20 +647,20 @@ async function send(){
   if(!text || thinking || !cur) return;
   if(!S.g('key')){ alert('설정에서 Claude API 키를 먼저 입력해 주세요.'); return; }
   ta.value=''; ta.style.height='auto';
-  const um={role:'user',text}; cur.msgs.push(um); S.append(cur.ex.id,um);
+  const um={role:'user',text,ts:Date.now()}; cur.msgs.push(um); S.append(cur.ex.id,um);
   thinking=true; paint();
   try{
     const sys=buildSystemPrompt(cur.ex,S.g('name',''),S.mem(cur.ex.id),S.related(cur.ex.id,text));
     const arr=buildMessages(cur.msgs);
     const txt=await callClaude({model:MODEL,max_tokens:1024,system:sys,messages:arr});
-    const em={role:'expert',text:txt}; cur.msgs.push(em); S.append(cur.ex.id,em);
+    const em={role:'expert',text:txt,ts:Date.now()}; cur.msgs.push(em); S.append(cur.ex.id,em);
     // 대화 5개마다 기억을 갱신하되, 그 사이에 끝나도 놓치지 않게 표시를 남긴다.
     memDirty=true;
     if(cur.msgs.length%5===0){ memDirty=false; updateMemory(cur.ex); }
   }catch(e){
     const msg = e.message==='NOKEY' ? '설정에서 API 키를 입력해 주세요.'
       : (e instanceof TypeError ? '인터넷 연결이 끊긴 것 같아요. 연결을 확인하고 다시 말씀해 주세요.' : e.message);
-    cur.msgs.push({role:'sys',text:msg});
+    cur.msgs.push({role:'sys',text:msg,ts:Date.now()});
   }finally{ thinking=false; paint(); }
 }
 
@@ -570,6 +697,120 @@ document.getElementById('chat-back').onclick=()=>{
   document.querySelectorAll('#tabs button').forEach((x,i)=>x.classList.toggle('on',i===0));
 };
 
+/* ── 친구 관리 ──────────────────────────────────────────
+   별을 눌러 친구 목록에 표시할 전문가를 고른다. */
+function renderManage(){
+  const on=EXPERTS.filter(e=>isFav(e.id)).length;
+  document.getElementById('manage-sub').innerHTML =
+    `전문가 ${EXPERTS.length} · 즐겨찾기 ${on}<span style="float:right">★ 토글로 친구목록에 표시</span>`;
+  document.getElementById('manage-list').innerHTML = EXPERTS.map(ex=>`
+    <div class="row" data-id="${ex.id}" style="cursor:default">
+      ${avatar(ex)}
+      <div class="row-b">
+        <div class="row-t"><b>${esc(ex.name)}</b><span class="tag" style="background:${ex.color}">${esc(ex.field)}</span></div>
+        <div class="row-s">${esc(ex.status)}</div>
+      </div>
+      <button class="star icon-btn" data-id="${ex.id}"
+        style="font-size:1.5rem;color:${isFav(ex.id)?'var(--accent)':'var(--line)'}">★</button>
+    </div>`).join('');
+  document.querySelectorAll('#manage-list .star').forEach(b=>{
+    b.onclick=()=>{ setFav(b.dataset.id, !isFav(b.dataset.id)); renderManage(); renderFriends(); };
+  });
+}
+document.getElementById('manage-open').onclick=()=>{ renderManage(); document.getElementById('manage').style.display='flex'; };
+document.getElementById('manage-done').onclick=()=>{ document.getElementById('manage').style.display='none'; renderFriends(); };
+
+/* ── 지난 대화 보기 ─────────────────────────────────────
+   날짜별 세션 목록. 항목을 누르면 그날 대화를 읽기 전용으로 본다. */
+let viewing=null;
+function renderHistory(){
+  const ex=cur.ex, ses=S.sessions(ex.id).slice().sort((a,b)=>b.ts-a.ts);
+  document.getElementById('hist-sub').textContent=`${ex.name} · 총 ${ses.length}건`;
+  const el=document.getElementById('hist-list');
+  if(!ses.length){ el.innerHTML='<div class="tip">아직 지난 대화가 없어요.</div>'; return; }
+  el.innerHTML=ses.map(s=>{
+    const last=s.messages[s.messages.length-1];
+    return `<div class="hitem" data-ts="${s.ts}">
+      <div class="hb">
+        <div class="hd">${dayLabel(s.ts)}</div>
+        <div class="hp">${esc(last?last.text:'')}</div>
+        <div class="hm">${hhmm(s.ts)} · ${s.messages.length}개</div>
+      </div>
+      <button class="del" title="삭제">🗑️</button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.hitem').forEach(it=>{
+    const ts=+it.dataset.ts;
+    it.querySelector('.hb').onclick=()=>openSession(ts);
+    it.querySelector('.del').onclick=e=>{
+      e.stopPropagation();
+      if(!confirm('이 날의 대화를 삭제할까요?\n되돌릴 수 없습니다.')) return;
+      S.saveSessions(cur.ex.id, S.sessions(cur.ex.id).filter(x=>x.ts!==ts));
+      renderHistory();
+      if(viewing===ts){ closeSession(); }
+    };
+  });
+}
+function openSession(ts){
+  const s=S.sessions(cur.ex.id).find(x=>x.ts===ts); if(!s) return;
+  viewing=ts; cur.msgs=s.messages;
+  document.getElementById('hist').style.display='none';
+  document.getElementById('viewing').style.display='';
+  document.getElementById('viewing-when').textContent=dayLabel(ts)+' 대화를 보는 중';
+  document.querySelector('#s-chat .inbar').style.display='none';
+  paint();
+}
+function closeSession(){
+  viewing=null; cur.msgs=S.today(cur.ex.id);
+  document.getElementById('viewing').style.display='none';
+  document.querySelector('#s-chat .inbar').style.display='';
+  paint();
+}
+document.getElementById('hist-open').onclick=()=>{ if(!cur) return; renderHistory(); document.getElementById('hist').style.display='flex'; };
+document.getElementById('hist-close').onclick=()=>document.getElementById('hist').style.display='none';
+document.getElementById('viewing-back').onclick=closeSession;
+
+/* ── 지난 대화 검색 ─────────────────────────────────────
+   네이티브에는 돋보기 아이콘만 있고 동작이 없었다(onClick 비어 있음).
+   이 앱은 '다 기억한다'가 핵심이라 실제로 찾을 수 있게 만든다. */
+function runSearch(){
+  const q=document.getElementById('q').value.trim();
+  const box=document.getElementById('results');
+  if(!q){ box.style.display='none'; box.innerHTML=''; return; }
+  const hits=[];
+  S.sessions(cur.ex.id).slice().sort((a,b)=>b.ts-a.ts).forEach(s=>{
+    s.messages.forEach(m=>{
+      if(m.text && m.text.includes(q)) hits.push({ts:s.ts, m});
+    });
+  });
+  box.style.display='';
+  if(!hits.length){ box.innerHTML='<div class="tip">찾는 내용이 없어요.</div>'; return; }
+  box.innerHTML=hits.slice(0,50).map((h,i)=>{
+    const t=esc(h.m.text);
+    const marked=t.split(esc(q)).join(`<mark>${esc(q)}</mark>`);
+    return `<div class="hit" data-i="${i}" data-ts="${h.ts}">
+      <div class="hd">${dayLabel(h.ts)} · ${h.m.role==='user'?'나':esc(cur.ex.name)}</div>
+      <div class="tx">${marked}</div></div>`;
+  }).join('');
+  box.querySelectorAll('.hit').forEach(el=>{
+    el.onclick=()=>{ closeSearch(); openSession(+el.dataset.ts); };
+  });
+}
+function closeSearch(){
+  document.getElementById('searchbar').style.display='none';
+  document.getElementById('results').style.display='none';
+  document.getElementById('q').value='';
+}
+document.getElementById('search-open').onclick=()=>{
+  if(!cur) return;
+  const b=document.getElementById('searchbar');
+  b.style.display = b.style.display==='none' ? 'flex' : 'none';
+  if(b.style.display!=='none') document.getElementById('q').focus();
+  else closeSearch();
+};
+document.getElementById('search-close').onclick=closeSearch;
+document.getElementById('q').addEventListener('input',runSearch);
+
 document.getElementById('save-key').onclick=()=>{
   const v=document.getElementById('in-key').value.trim();
   if(v && !v.startsWith('sk-ant-')){ alert('올바른 Claude API 키가 아닙니다.'); return; }
@@ -581,6 +822,18 @@ document.getElementById('clear-key').onclick=()=>{
   S.s('key',''); document.getElementById('in-key').value=''; alert('삭제했습니다.');
 };
 document.getElementById('in-name').addEventListener('change',e=>{ S.s('name',e.target.value.trim()); renderFriends(); });
+/* 글자 크기 — 본문이 rem이라 루트 크기만 바꾸면 전체가 함께 커진다.
+   아바타·여백 같은 레이아웃은 px라 그대로 유지된다. */
+function applyFontSize(scale){
+  document.documentElement.style.fontSize = (16*parseFloat(scale)) + 'px';
+  document.querySelectorAll('#fs-btns .btn').forEach(b=>{
+    b.classList.toggle('p', String(b.dataset.fs)===String(scale));
+  });
+}
+document.querySelectorAll('#fs-btns .btn').forEach(b=>{
+  b.onclick=()=>{ S.s('fs', b.dataset.fs); applyFontSize(b.dataset.fs); };
+});
+
 document.getElementById('toggle-theme').onclick=()=>{
   document.body.classList.toggle('light');
   S.s('theme',document.body.classList.contains('light')?'light':'dark');
@@ -593,6 +846,7 @@ document.getElementById('wipe').onclick=()=>{
 
 /* ── 시작 ──────────────────────────────────────────────── */
 if(S.g('theme')==='light') document.body.classList.add('light');
+applyFontSize(S.g('fs','1'));
 document.getElementById('in-name').value=S.g('name','');
 document.getElementById('in-key').value=S.g('key','');
 renderFriends();
