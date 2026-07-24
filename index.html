@@ -427,8 +427,13 @@ async function callClaude(body){
   }
   const d=await res.json();
   // 검색을 쓰면 응답에 web_search_tool_result 블록이 섞이므로 text만 골라낸다.
-  return (d.content||[]).filter(b=>b.type==='text').map(b=>b.text||'').join('').trim();
+  const text=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text||'').join('').trim();
+  // stop_reason도 함께 넘긴다. 답변이 길이 제한에 걸려 잘렸는지(max_tokens),
+  // 검색만 하고 턴이 끊겼는지(pause_turn) 호출한 쪽에서 판단해 이어받아야 한다.
+  return { text, stop:d.stop_reason, content:d.content||[] };
 }
+// 텍스트만 필요한 곳(인사말·기억 요약)을 위한 얇은 래퍼
+async function callClaudeText(body){ return (await callClaude(body)).text; }
 
 /* ── 시스템 프롬프트 (네이티브 buildSystemPrompt 이식) ── */
 function buildSystemPrompt(ex,userName,longterm,related,withSearch){
@@ -675,7 +680,7 @@ ${mem?'- 알고 있는 사용자 정보:\n'+mem:''}${ctxStr}
 - 깍듯한 존댓말 사용
 - 마크다운 문법(**굵게**, ##제목 등) 절대 사용 금지
 - 모든 답변은 한국어로`;
-      const txt=await callClaude({model:MODEL_CHEAP,max_tokens:200,system:sys,messages:[{role:'user',content:'안녕하세요.'}]});
+      const txt=await callClaudeText({model:MODEL_CHEAP,max_tokens:200,system:sys,messages:[{role:'user',content:'안녕하세요.'}]});
       const m={role:'expert',text:txt||ex.greeting,ts:Date.now()};
       cur.msgs.push(m); S.append(ex.id,m);
     }catch(e){
@@ -695,11 +700,44 @@ async function send(){
   thinking=true; paint();
   try{
     const sys=buildSystemPrompt(cur.ex,S.g('name',''),S.mem(cur.ex.id),S.related(cur.ex.id,text),searchOn());
-    const arr=buildMessages(cur.msgs);
-    const req={model:MODEL,max_tokens:1024,system:sys,messages:arr};
-    if(searchOn()) req.tools=[SEARCH_TOOL];
-    const txt=await callClaude(req);
-    const em={role:'expert',text:txt,ts:Date.now()}; cur.msgs.push(em); S.append(cur.ex.id,em);
+    let arr=buildMessages(cur.msgs);
+
+    // 답변이 중간에 끊기던 문제를 여기서 막는다.
+    //  ① max_tokens가 1024라 세법·부동산처럼 근거를 들어 길게 설명하면 문장 중간에서
+    //     잘렸다. 한도를 넉넉히 잡는다(실제 생성한 만큼만 과금되므로 올려도 손해가 없다).
+    //  ② 그래도 한도에 걸리면 이어서 받아 붙인다.
+    //  ③ 검색을 켜면 모델이 검색만 하고 턴이 끊길 수 있다(pause_turn). 그때는
+    //     같은 대화를 그대로 다시 보내면 서버가 이어서 진행한다. 예전에는 이걸
+    //     처리하지 않아 본문이 빈 채로 저장돼 빈 말풍선이 남았다.
+    let full='', joinRaw=false;
+    for(let i=0;i<4;i++){
+      const req={model:MODEL,max_tokens:16000,system:sys,messages:arr};
+      if(searchOn()) req.tools=[SEARCH_TOOL];
+      const r=await callClaude(req);
+      // 길이 제한으로 잘린 경우는 단어 중간일 수 있으니 그대로 이어 붙인다.
+      // (검색 때문에 턴이 나뉜 경우는 문단이 바뀌므로 줄을 띄운다.)
+      if(r.text) full += (full ? (joinRaw ? '' : '\n') : '') + r.text;
+      joinRaw = (r.stop==='max_tokens');
+      if(r.stop==='pause_turn'){
+        // 이어서 진행하라는 신호. 사용자 메시지를 덧붙이면 안 된다.
+        arr=arr.concat([{role:'assistant',content:r.content}]);
+        continue;
+      }
+      if(r.stop==='max_tokens'){
+        arr=arr.concat([
+          {role:'assistant',content:r.content},
+          {role:'user',content:'답변이 중간에 끊겼어요. 끊긴 지점부터 이어서 계속해 주세요. 인사나 앞부분 반복 없이 바로 이어서요.'}
+        ]);
+        continue;
+      }
+      break;
+    }
+    if(!full){
+      // 끝내 본문이 비면 빈 말풍선을 남기지 않고 상황을 알린다.
+      cur.msgs.push({role:'sys',text:'답변을 받지 못했어요. 다시 한 번 말씀해 주시겠어요?',ts:Date.now()});
+      return;
+    }
+    const em={role:'expert',text:full,ts:Date.now()}; cur.msgs.push(em); S.append(cur.ex.id,em);
     // 대화 5개마다 기억을 갱신하되, 그 사이에 끝나도 놓치지 않게 표시를 남긴다.
     memDirty=true;
     if(cur.msgs.length%5===0){ memDirty=false; updateMemory(cur.ex); }
@@ -722,7 +760,7 @@ async function updateMemory(ex){
 기존 기억 리스트와 합쳐서 중복 없이 불렛포인트로만 리턴하세요.
 다른 말은 절대 하지 마세요. 리스트만 리턴하세요.`;
     const existing=S.mem(ex.id);
-    const out=await callClaude({model:MODEL_CHEAP,max_tokens:300,system:sys,
+    const out=await callClaudeText({model:MODEL_CHEAP,max_tokens:300,system:sys,
       messages:[{role:'user',content:`기존 기억:\n${existing||'없음'}\n\n새로운 대화:\n${recent}`}]});
     if(out && out!==existing) S.setMem(ex.id,out);
   }catch(e){ /* 백그라운드 작업이라 실패해도 대화를 막지 않는다 */ }
